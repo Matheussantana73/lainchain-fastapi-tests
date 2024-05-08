@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+langchain = "*"
+langserve = {extras = ["all"], version = "*"}
+langchain-cli = "*"
+fastapi = "*"
+langchain-community = "*"
+openai = "*"
+langchain-openai = "*"
+python-dotenv = "==1.0.0"
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"
