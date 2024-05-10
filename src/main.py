@@ -1,17 +1,14 @@
 from fastapi import FastAPI
-from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, AIMessagePromptTemplate
-from langchain.chat_models.openai import ChatOpenAI
-from langchain.schema import SystemMessage
-from langchain.chains.llm import LLMChain
+from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 
 from entity.chat_model import ChatModel
 from dotenv import load_dotenv
 
+from operations.build_chat_model_llm_chain import ChatModelLLMChain
+
 load_dotenv()
 
 app = FastAPI(version='0.1')
-
-chat = ChatOpenAI()
 
 @app.get('/hello')
 def hello():
@@ -19,15 +16,19 @@ def hello():
 
 @app.post('/prompt')
 def send_prompt(chat_model: ChatModel):
-    presets = chat_model.presets or []
-    messages=[(item.role, item.content) for item in presets]
+    llm = ChatModelLLMChain(chat_model=chat_model).build()
 
-    prompt = ChatPromptTemplate.from_messages(messages)
+    prompt = chat_model_to_chat_prompt(chat_model)
     prompt.append(HumanMessagePromptTemplate.from_template("{input}"))
 
-    chain = prompt | chat
-    
+    chain = prompt | llm
+
     result = chain.invoke({"input": chat_model.prompt})
     return result.content
 
+
+def chat_model_to_chat_prompt(chat_model: ChatModel):
+    presets = chat_model.presets or []
+    messages=[(item.role, item.content) for item in presets]
+    return ChatPromptTemplate.from_messages(messages)
 
