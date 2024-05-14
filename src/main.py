@@ -6,6 +6,7 @@ from pydantic.v1.error_wrappers import ValidationError
 from entity.chat_model import ChatModel
 
 from operations.build_chat_model_llm_chain import ChatModelLLMChain
+from utils.helper import format_return
 
 app = FastAPI(version='0.1')
 
@@ -24,7 +25,7 @@ def send_prompt(chat_model: ChatModel):
         chain = prompt | llm
 
         result = chain.invoke({"input": chat_model.prompt})
-        return result.content
+        return format_return(result.content)
     except AuthenticationError as e:
         response = e.response
         data = response.json()
@@ -48,4 +49,3 @@ def chat_model_to_chat_prompt(chat_model: ChatModel):
     presets = chat_model.presets or []
     messages=[(item.role, item.content) for item in presets]
     return ChatPromptTemplate.from_messages(messages)
-
