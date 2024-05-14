@@ -1,11 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
-from openai import AuthenticationError
-from pydantic.v1.error_wrappers import ValidationError
 
 from entity.chat_model import ChatModel
 
 from operations.build_chat_model_llm_chain import ChatModelLLMChain
+from utils.handle_errors import handler_llm_except
 from utils.helper import format_return
 
 app = FastAPI(version='0.1')
@@ -15,34 +14,20 @@ def hello():
     return {"message": "Hello World"}
 
 @app.post('/prompt')
+@handler_llm_except
 def send_prompt(chat_model: ChatModel):
-    try:
-        llm = ChatModelLLMChain(chat_model=chat_model).build()
+    chain = build_llm_chain(chat_model)
 
-        prompt = chat_model_to_chat_prompt(chat_model)
-        prompt.append(HumanMessagePromptTemplate.from_template("{input}"))
+    result = chain.invoke({"input": chat_model.prompt})
+    return format_return(result.content)
 
-        chain = prompt | llm
+def build_llm_chain(chat_model):
+    llm = ChatModelLLMChain(chat_model=chat_model).build()
 
-        result = chain.invoke({"input": chat_model.prompt})
-        return format_return(result.content)
-    except AuthenticationError as e:
-        response = e.response
-        data = response.json()
-        raise HTTPException(
-            detail=data, status_code=response.status_code
-        ) from e
-    except ValidationError as e:
-        raise HTTPException(
-            detail=e.errors(),
-            status_code=422
-        ) from e
-    except Exception as e:
-        raise HTTPException(
-            detail=e.args,
-            status_code=422
-        ) from e
+    prompt = chat_model_to_chat_prompt(chat_model)
+    prompt.append(HumanMessagePromptTemplate.from_template("{input}"))
 
+    return prompt | llm
 
 
 def chat_model_to_chat_prompt(chat_model: ChatModel):
